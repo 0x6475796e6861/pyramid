@@ -2,6 +2,7 @@ import inspect
 import itertools
 import sys
 import venusian
+from typing import Any, Callable, TypeVar
 from zope.interface import providedBy
 
 from pyramid.exceptions import ConfigurationError, PredicateMismatch
@@ -135,6 +136,9 @@ def render_view(context, request, name='', secure=True):
     return b''.join(iterable)
 
 
+_Handler = TypeVar('_THandler', bound=Callable[..., Any])
+
+
 class view_config:
     """A function, class or method :term:`decorator` which allows a
     developer to create view registrations nearer to a :term:`view
@@ -221,21 +225,21 @@ class view_config:
 
     venusian = venusian  # for testing injection
 
-    def __init__(self, **settings):
+    def __init__(self, **settings: Any) -> None:
         if 'for_' in settings:
             if settings.get('context') is None:
                 settings['context'] = settings['for_']
         self.__dict__.update(settings)
         self._get_info()
 
-    def _get_info(self):
+    def _get_info(self) -> None:
         depth = self.__dict__.get('_depth', 0)
         frame = sys._getframe(depth + 2)
         frameinfo = inspect.getframeinfo(frame)
         sourceline = frameinfo[3][0].strip()
         self._info = frameinfo[0], frameinfo[1], frameinfo[2], sourceline
 
-    def __call__(self, wrapped):
+    def __call__(self, wrapped: _Handler) -> _Handler:
         settings = self.__dict__.copy()
         depth = settings.pop('_depth', 0)
         category = settings.pop('_category', 'pyramid')
